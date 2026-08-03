@@ -7,6 +7,7 @@ enum SettingsKey {
     static let notificationHour = "notificationHour"
     static let notificationMinute = "notificationMinute"
     static let iCloudBackupEnabled = "iCloudBackupEnabled"
+    static let selectedRabbitID = "selectedRabbitID"
 }
 
 /// 設定値は端末内の UserDefaults にのみ保存する。外部送信はしない。
@@ -30,6 +31,7 @@ final class AppSettings {
         self.notificationHour = defaults.integer(forKey: SettingsKey.notificationHour)
         self.notificationMinute = defaults.integer(forKey: SettingsKey.notificationMinute)
         self.iCloudBackupEnabled = defaults.bool(forKey: SettingsKey.iCloudBackupEnabled)
+        self.selectedRabbitID = defaults.string(forKey: SettingsKey.selectedRabbitID)
     }
 
     var hasCompletedSetup: Bool {
@@ -50,6 +52,12 @@ final class AppSettings {
 
     var iCloudBackupEnabled: Bool {
         didSet { defaults.set(iCloudBackupEnabled, forKey: SettingsKey.iCloudBackupEnabled) }
+    }
+
+    /// 表示中のうさぎ。該当するうさぎが消えている場合もあるので、
+    /// 参照側で必ず実在確認してから使う（RootView を参照）。
+    var selectedRabbitID: String? {
+        didSet { defaults.set(selectedRabbitID, forKey: SettingsKey.selectedRabbitID) }
     }
 
     /// 通知時刻を Date として読み書きするための橋渡し（DatePicker 用）。

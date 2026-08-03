@@ -49,6 +49,8 @@ struct TimelineView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
+                    RabbitSwitcher(current: rabbit)
+
                     if items.isEmpty {
                         EmptyStateView(
                             systemImage: "book",

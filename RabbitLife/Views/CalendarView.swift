@@ -14,6 +14,8 @@ struct CalendarView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    RabbitSwitcher(current: rabbit)
+
                     Card {
                         VStack(spacing: 14) {
                             monthHeader

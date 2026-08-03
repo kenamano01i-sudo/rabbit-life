@@ -4,6 +4,9 @@ import SwiftData
 @Model
 final class Rabbit {
 
+    /// 登録できる頭数の上限。切り替えUIが破綻しない範囲に抑えている。
+    static let maxCount = 3
+
     @Attribute(.unique) var id: UUID
     var name: String
     var birthday: Date?

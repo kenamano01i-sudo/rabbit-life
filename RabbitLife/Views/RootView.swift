@@ -9,9 +9,21 @@ struct RootView: View {
 
     @State private var showSplash = true
 
+    /// 選択中のうさぎ。削除された ID が残っていることもあるので、
+    /// 実在しなければ先頭に戻す。
+    private var selectedRabbit: Rabbit? {
+        if let id = settings.selectedRabbitID,
+           let match = rabbits.first(where: { $0.id.uuidString == id }) {
+            return match
+        }
+        return rabbits.first
+    }
+
     var body: some View {
         ZStack {
-            if let rabbit = rabbits.first {
+            if let rabbit = selectedRabbit {
+                // ここで .id を付けるとタブ選択ごと作り直されてホームに戻ってしまう。
+                // 作り直しは MainTabView 内の各画面に任せる。
                 MainTabView(rabbit: rabbit)
             } else {
                 SetupView()
@@ -29,10 +41,11 @@ struct RootView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
+            let names = rabbits.map(\.name)
             Task {
                 await NotificationManager.shared.syncDailyReminder(
                     with: settings,
-                    rabbitName: rabbits.first?.name
+                    rabbitNames: names
                 )
             }
         }

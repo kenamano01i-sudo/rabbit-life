@@ -9,8 +9,15 @@ struct SettingsView: View {
     @Environment(AppSettings.self) private var settings
 
     @Query private var records: [DailyRecord]
+    @Query(sort: \Rabbit.createdAt, order: .forward) private var rabbits: [Rabbit]
+
     @State private var exportURL: URL?
     @State private var notificationDenied = false
+
+    @State private var showAddRabbit = false
+    @State private var rabbitToDelete: Rabbit?
+    @State private var errorMessage: String?
+    @State private var showError = false
 
     init(rabbit: Rabbit) {
         self.rabbit = rabbit
@@ -27,16 +34,43 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    NavigationLink {
-                        ProfileView(rabbit: rabbit)
-                    } label: {
-                        HStack(spacing: 12) {
-                            RabbitAvatar(photo: rabbit.photo, size: 40)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(rabbit.name).font(.body)
-                                Text("プロフィール").font(.caption).foregroundStyle(.secondary)
+                    ForEach(rabbits) { candidate in
+                        NavigationLink {
+                            ProfileView(rabbit: candidate)
+                        } label: {
+                            HStack(spacing: 12) {
+                                RabbitAvatar(photo: candidate.photo, size: 40)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(candidate.name).font(.body)
+                                    Text(candidate.id == rabbit.id ? "表示中・プロフィール" : "プロフィール")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
+                        .swipeActions(edge: .trailing) {
+                            // 最後の1羽まで消せると記録が全部なくなってしまうので残す。
+                            if rabbits.count > 1 {
+                                Button("削除", role: .destructive) { rabbitToDelete = candidate }
+                            }
+                        }
+                    }
+
+                    Button {
+                        showAddRabbit = true
+                    } label: {
+                        Label("うさぎを追加", systemImage: "plus")
+                    }
+                    .disabled(rabbits.count >= Rabbit.maxCount)
+                } header: {
+                    Text("うさぎ")
+                } footer: {
+                    if rabbits.count >= Rabbit.maxCount {
+                        Text("登録できるのは\(Rabbit.maxCount)羽までです。")
+                    } else if rabbits.count > 1 {
+                        Text("最大\(Rabbit.maxCount)羽まで登録できます。表示するうさぎはホームで切り替えられます。")
+                    } else {
+                        Text("最大\(Rabbit.maxCount)羽まで登録できます。")
                     }
                 }
 
@@ -102,11 +136,56 @@ struct SettingsView: View {
         .onChange(of: settings.iCloudBackupEnabled) { _, enabled in
             BackupPolicy.apply(enabled: enabled, container: context.container)
         }
+        .sheet(isPresented: $showAddRabbit) {
+            AddRabbitView()
+        }
+        .confirmationDialog(
+            rabbitToDelete.map { "\($0.name)を削除しますか？" } ?? "",
+            isPresented: Binding(get: { rabbitToDelete != nil }, set: { if !$0 { rabbitToDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("削除", role: .destructive) {
+                if let target = rabbitToDelete { delete(target) }
+                rabbitToDelete = nil
+            }
+            Button("キャンセル", role: .cancel) { rabbitToDelete = nil }
+        } message: {
+            Text("記録・できごと・写真もすべて消えます。この操作は取り消せません。")
+        }
+        .alert("削除できませんでした", isPresented: $showError) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    private func delete(_ target: Rabbit) {
+        let wasSelected = target.id == rabbit.id
+        context.delete(target)
+
+        do {
+            try context.save()
+        } catch {
+            // delete はメモリ上に適用済みなので、戻さないと画面からは消えたまま
+            // 次回起動時に復活する。
+            context.rollback()
+            errorMessage = error.localizedDescription
+            showError = true
+            return
+        }
+
+        // 表示中の子を消したときは、残っている先頭に移す。
+        if wasSelected {
+            settings.selectedRabbitID = rabbits.first(where: { $0.id != target.id })?.id.uuidString
+        }
+
+        syncNotification()
     }
 
     private func syncNotification() {
+        let names = rabbits.map(\.name)
         Task {
-            await NotificationManager.shared.syncDailyReminder(with: settings, rabbitName: rabbit.name)
+            await NotificationManager.shared.syncDailyReminder(with: settings, rabbitNames: names)
         }
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import PhotosUI
 
 // MARK: - カード
@@ -207,6 +208,61 @@ struct RabbitAvatar: View {
         .frame(width: size, height: size)
         .clipShape(Circle())
         .accessibilityHidden(true)
+    }
+}
+
+// MARK: - うさぎの切り替え
+
+/// うさぎの切り替えタブ。ホーム・カレンダー・今日の記録・タイムラインの先頭に置く。
+/// 1羽でも出して、置き場所を常に一定にしておく。
+struct RabbitSwitcher: View {
+
+    /// 現在表示しているうさぎ。
+    let current: Rabbit
+
+    /// 切り替え前に確認したい画面が渡す。false を返すと切り替えを行わない
+    /// （確認ダイアログの表示など、後始末は呼び出し側の責任）。
+    var shouldSwitch: ((Rabbit) -> Bool)? = nil
+
+    @Environment(AppSettings.self) private var settings
+    @Query(sort: \Rabbit.createdAt, order: .forward) private var rabbits: [Rabbit]
+
+    var body: some View {
+        // 名前が長い場合や Dynamic Type で大きい場合に備えて横スクロールにする。
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(rabbits) { candidate in
+                    let isSelected = candidate.id == current.id
+                    Button {
+                        guard !isSelected else { return }
+                        guard shouldSwitch?(candidate) ?? true else { return }
+                        settings.selectedRabbitID = candidate.id.uuidString
+                    } label: {
+                        HStack(spacing: 6) {
+                            RabbitAvatar(photo: candidate.photo, size: 24)
+                            Text(candidate.name)
+                                .font(.subheadline)
+                                .lineLimit(1)
+                        }
+                        .padding(.vertical, 7)
+                        .padding(.horizontal, 12)
+                        .background(
+                            isSelected ? Color.accentColor.opacity(0.18) : Color(.secondarySystemGroupedBackground),
+                            in: Capsule()
+                        )
+                        .overlay(
+                            Capsule().strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 1.5)
+                        )
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("表示するうさぎ")
     }
 }
 

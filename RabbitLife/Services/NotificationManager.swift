@@ -27,13 +27,16 @@ final class NotificationManager {
     }
 
     /// 設定に合わせて毎日のリマインダーを張り直す。
-    func syncDailyReminder(with settings: AppSettings, rabbitName: String?) async {
+    /// 複数羽いても通知は1通にまとめる（頭数分届くと煩わしいため）。
+    func syncDailyReminder(with settings: AppSettings, rabbitNames: [String]) async {
         cancelDailyReminder()
         guard settings.notificationEnabled else { return }
         guard await requestAuthorizationIfNeeded() else { return }
 
+        let names = rabbitNames.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
         let content = UNMutableNotificationContent()
-        content.title = rabbitName.map { "\($0)の今日の様子" } ?? "Rabbit Life"
+        content.title = names.isEmpty ? "Rabbit Life" : "\(names.joined(separator: "・"))の今日の様子"
         content.body = "今日の様子を記録しませんか？"
         content.sound = .default
 

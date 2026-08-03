@@ -39,6 +39,8 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    RabbitSwitcher(current: rabbit)
+
                     header
 
                     if hasRecordToday {

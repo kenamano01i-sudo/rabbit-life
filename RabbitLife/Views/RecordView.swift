@@ -20,6 +20,11 @@ struct RecordView: View {
     @State private var memo = ""
     @State private var photo: Data?
 
+    /// 読み込み直後の値。うさぎを切り替えるとき、入力途中かどうかの判定に使う。
+    @State private var loadedSnapshot: Snapshot?
+    /// 入力途中に切り替えようとした先。確認ダイアログの表示条件も兼ねる。
+    @State private var pendingRabbit: Rabbit?
+
     @State private var isLoaded = false
     @State private var isSaving = false
     @State private var resultDrafts: [DifferenceDraft] = []
@@ -29,10 +34,50 @@ struct RecordView: View {
 
     @FocusState private var weightFocused: Bool
 
+    /// 入力欄の中身をまとめて比較するための値。
+    private struct Snapshot: Equatable {
+        var appetite: Appetite
+        var water: WaterIntake
+        var poopAmount: PoopAmount
+        var poopSize: PoopSize
+        var poopShape: PoopShape
+        var activity: ActivityLevel
+        var weightText: String
+        var memo: String
+        var photo: Data?
+    }
+
+    private var currentSnapshot: Snapshot {
+        Snapshot(
+            appetite: appetite,
+            water: water,
+            poopAmount: poopAmount,
+            poopSize: poopSize,
+            poopShape: poopShape,
+            activity: activity,
+            weightText: weightText,
+            memo: memo,
+            photo: photo
+        )
+    }
+
+    /// 読み込み時から変わっていれば、まだ保存していない入力がある。
+    private var hasUnsavedChanges: Bool {
+        guard let loadedSnapshot else { return false }
+        return currentSnapshot != loadedSnapshot
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    RabbitSwitcher(current: rabbit) { candidate in
+                        // 切り替えると画面が作り直され、入力途中の内容は失われる。
+                        guard hasUnsavedChanges else { return true }
+                        pendingRabbit = candidate
+                        return false
+                    }
+
                     Card {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("今日の様子").font(.title3.weight(.semibold))
@@ -120,6 +165,21 @@ struct RecordView: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        .confirmationDialog(
+            pendingRabbit.map { "\($0.name)に切り替えますか？" } ?? "",
+            isPresented: Binding(get: { pendingRabbit != nil }, set: { if !$0 { pendingRabbit = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("切り替える", role: .destructive) {
+                if let target = pendingRabbit {
+                    settings.selectedRabbitID = target.id.uuidString
+                }
+                pendingRabbit = nil
+            }
+            Button("入力を続ける", role: .cancel) { pendingRabbit = nil }
+        } message: {
+            Text("入力中の内容は保存されません。")
+        }
     }
 
     // MARK: - 読み込み
@@ -127,6 +187,9 @@ struct RecordView: View {
     private func load() {
         guard !isLoaded else { return }
         isLoaded = true
+
+        // 既存の記録がない場合も、初期値を基準として控えておく。
+        defer { loadedSnapshot = currentSnapshot }
 
         let repository = DailyRecordRepository(context: context)
         guard let existing = try? repository.record(for: rabbit, on: day) else { return }
@@ -171,6 +234,9 @@ struct RecordView: View {
             let service = DifferenceService(context: context)
             let drafts = try service.regenerate(for: rabbit, on: day)
             try service.regenerateFollowingDays(for: rabbit, from: day)
+
+            // 保存できたので、以後の切り替えでは未保存扱いにしない。
+            loadedSnapshot = currentSnapshot
 
             resultDrafts = drafts
             showResult = true
