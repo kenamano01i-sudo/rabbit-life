@@ -1,0 +1,12 @@
+// プロジェクト共通のビルド設定。
+//
+// DEVELOPMENT_TEAM は開発者ごとに異なり、Apple ID に紐づく識別子のため
+// リポジトリには含めない。Config/Local.xcconfig に各自で記述する。
+// `#include?` は対象ファイルが無くてもエラーにならないので、
+// クローン直後（Local.xcconfig 未作成）でもビルドは通る。
+//
+// セットアップ:
+//   cp Config/Local.xcconfig.example Config/Local.xcconfig
+//   # コピーしたファイルに自分の Team ID を記入する
+
+#include? "Local.xcconfig"

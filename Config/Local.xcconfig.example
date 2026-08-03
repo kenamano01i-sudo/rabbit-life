@@ -1,0 +1,7 @@
+// このファイルを Config/Local.xcconfig にコピーして使う。
+// Local.xcconfig は .gitignore 済みでコミットされない。
+//
+// Team ID は Xcode → Settings → Accounts で確認できる。
+// 実機ビルドをしない（シミュレータのみ）場合は空のままでよい。
+
+DEVELOPMENT_TEAM = 
