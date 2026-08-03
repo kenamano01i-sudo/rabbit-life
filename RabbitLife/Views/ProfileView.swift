@@ -157,6 +157,9 @@ private struct ProfileEditView: View {
     @State private var hasAdoptionDate = false
     @State private var adoptionDate = Date()
 
+    @State private var errorMessage: String?
+    @State private var showError = false
+
     var body: some View {
         NavigationStack {
             Form {
@@ -217,13 +220,26 @@ private struct ProfileEditView: View {
                 hasAdoptionDate = rabbit.adoptionDate != nil
                 adoptionDate = rabbit.adoptionDate ?? Date()
             }
+            .alert("保存できませんでした", isPresented: $showError) {
+                Button("OK", role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
         }
     }
 
     private func save() {
         rabbit.birthday = hasBirthday ? birthday : nil
         rabbit.adoptionDate = hasAdoptionDate ? adoptionDate : nil
-        try? context.save()
+
+        do {
+            try context.save()
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+            return
+        }
+
         dismiss()
     }
 }

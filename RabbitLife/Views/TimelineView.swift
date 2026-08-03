@@ -12,6 +12,9 @@ struct TimelineView: View {
 
     @State private var showEventEditor = false
 
+    @State private var errorMessage: String?
+    @State private var showError = false
+
     init(rabbit: Rabbit) {
         self.rabbit = rabbit
         let rabbitID = rabbit.id
@@ -63,8 +66,7 @@ struct TimelineView: View {
                                     .contextMenu {
                                         if case .event(let event) = item {
                                             Button("削除", role: .destructive) {
-                                                context.delete(event)
-                                                try? context.save()
+                                                delete(event)
                                             }
                                         }
                                     }
@@ -88,6 +90,25 @@ struct TimelineView: View {
             .sheet(isPresented: $showEventEditor) {
                 EventEditView(rabbit: rabbit)
             }
+            .alert("削除できませんでした", isPresented: $showError) {
+                Button("OK", role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    private func delete(_ event: Event) {
+        context.delete(event)
+
+        do {
+            try context.save()
+        } catch {
+            // delete はメモリ上に適用済みなので、戻さないと画面からは消えたまま
+            // 次回起動時に復活する。取り消してから知らせる。
+            context.rollback()
+            errorMessage = error.localizedDescription
+            showError = true
         }
     }
 }

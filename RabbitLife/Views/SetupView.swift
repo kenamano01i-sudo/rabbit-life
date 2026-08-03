@@ -16,6 +16,9 @@ struct SetupView: View {
     @State private var adoptionDate = Date()
     @State private var photo: Data?
 
+    @State private var errorMessage: String?
+    @State private var showError = false
+
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -78,6 +81,11 @@ struct SetupView: View {
                     Button("はじめる", action: save).disabled(!canSave)
                 }
             }
+            .alert("保存できませんでした", isPresented: $showError) {
+                Button("OK", role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
         }
     }
 
@@ -101,7 +109,17 @@ struct SetupView: View {
             eventRepository.create(for: rabbit, date: adoptionDate, type: .adoption, title: "", memo: "", photo: nil)
         }
 
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            // 保存できていないのに完了扱いにすると、データがないままメイン画面へ進んでしまう。
+            // 挿入済みの下書きも破棄し、もう一度「はじめる」を押せる状態に戻す。
+            context.rollback()
+            errorMessage = error.localizedDescription
+            showError = true
+            return
+        }
+
         settings.hasCompletedSetup = true
 
         Task {
