@@ -13,6 +13,12 @@ final class Rabbit {
     @Attribute(.externalStorage) var photo: Data?
     var createdAt: Date
 
+    // かかりつけ医。既存ストアからの軽量マイグレーションのため既定値を持たせる。
+    var clinicName: String = ""
+    var clinicAddress: String = ""
+    var clinicPhone: String = ""
+    var clinicNote: String = ""
+
     @Relationship(deleteRule: .cascade, inverse: \DailyRecord.rabbit)
     var records: [DailyRecord]
 
@@ -30,7 +36,11 @@ final class Rabbit {
         breed: String = "",
         sex: Sex = .unknown,
         photo: Data? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        clinicName: String = "",
+        clinicAddress: String = "",
+        clinicPhone: String = "",
+        clinicNote: String = ""
     ) {
         self.id = id
         self.name = name
@@ -40,6 +50,10 @@ final class Rabbit {
         self.sexRaw = sex.rawValue
         self.photo = photo
         self.createdAt = createdAt
+        self.clinicName = clinicName
+        self.clinicAddress = clinicAddress
+        self.clinicPhone = clinicPhone
+        self.clinicNote = clinicNote
         self.records = []
         self.events = []
         self.differences = []
@@ -48,6 +62,12 @@ final class Rabbit {
     var sex: Sex {
         get { Sex(rawValue: sexRaw) ?? .unknown }
         set { sexRaw = newValue.rawValue }
+    }
+
+    /// かかりつけ医の情報が1つでも入力されているか。
+    var hasClinicInfo: Bool {
+        [clinicName, clinicAddress, clinicPhone, clinicNote]
+            .contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 
     /// 「3歳」のような表示用の年齢。誕生日未設定なら nil。
