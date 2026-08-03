@@ -90,8 +90,11 @@ struct SettingsView: View {
         }
         .task {
             exportURL = ExportService.writeCSV(rabbit: rabbit, records: records)
-            notificationDenied = settings.notificationEnabled
-                && !(await NotificationManager.shared.requestAuthorizationIfNeeded())
+            if settings.notificationEnabled {
+                notificationDenied = !(await NotificationManager.shared.requestAuthorizationIfNeeded())
+            } else {
+                notificationDenied = false
+            }
         }
         .onChange(of: settings.notificationEnabled) { _, _ in syncNotification() }
         .onChange(of: settings.notificationHour) { _, _ in syncNotification() }
