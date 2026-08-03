@@ -14,6 +14,9 @@ struct EventEditView: View {
     @State private var memo = ""
     @State private var photo: Data?
 
+    @State private var errorMessage: String?
+    @State private var showError = false
+
     var body: some View {
         NavigationStack {
             Form {
@@ -60,23 +63,34 @@ struct EventEditView: View {
                 }
             }
         }
+        .alert("保存できませんでした", isPresented: $showError) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
     }
 
     private func save() {
-        let repository = EventRepository(context: context)
-        repository.create(
-            for: rabbit,
-            date: date.startOfDayRL,
-            type: type,
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-            memo: memo.trimmingCharacters(in: .whitespacesAndNewlines),
-            photo: photo
-        )
-        try? context.save()
+        do {
+            let repository = EventRepository(context: context)
+            repository.create(
+                for: rabbit,
+                date: date.startOfDayRL,
+                type: type,
+                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                memo: memo.trimmingCharacters(in: .whitespacesAndNewlines),
+                photo: photo
+            )
+            try context.save()
 
-        // 換毛開始などは「最近の変化」に効くため、今日の差分を作り直す。
-        let service = DifferenceService(context: context)
-        try? service.regenerate(for: rabbit, on: Date())
+            // 換毛開始などは「最近の変化」に効くため、今日の差分を作り直す。
+            let service = DifferenceService(context: context)
+            try service.regenerate(for: rabbit, on: Date())
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+            return
+        }
 
         dismiss()
     }
