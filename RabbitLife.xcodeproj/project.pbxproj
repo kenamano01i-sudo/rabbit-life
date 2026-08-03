@@ -13,7 +13,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		AA00000000000000000000A2 /* RabbitLife */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = RabbitLife; sourceTree = "<group>"; };
+		AA00000000000000000000A2 /* RabbitLife */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = RabbitLife;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +40,14 @@
 			);
 			sourceTree = "<group>";
 		};
+		AA00000000000000000000A5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA00000000000000000000A1 /* RabbitLife.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		AA00000000000000000000D3 /* Config */ = {
 			isa = PBXGroup;
 			children = (
@@ -43,14 +55,6 @@
 				AA00000000000000000000D2 /* Local.xcconfig.example */,
 			);
 			path = Config;
-			sourceTree = "<group>";
-		};
-		AA00000000000000000000A5 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				AA00000000000000000000A1 /* RabbitLife.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
