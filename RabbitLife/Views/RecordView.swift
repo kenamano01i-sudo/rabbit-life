@@ -121,8 +121,8 @@ struct RecordView: View {
                         }
                     }
 
-                    Card {
-                        PhotoField(label: "写真を追加（1日1枚）", data: $photo)
+                    Card(title: "写真（1日1枚）") {
+                        PhotoField(label: "写真を選ぶ", data: $photo, allowsCamera: true)
                     }
 
                     Card {

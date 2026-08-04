@@ -155,7 +155,12 @@ struct PhotoField: View {
 
     let label: String
     @Binding var data: Data?
+
+    /// その場で撮る手段も出すか。カメラの無い端末では指定しても出ない。
+    var allowsCamera = false
+
     @State private var item: PhotosPickerItem?
+    @State private var showCamera = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -174,15 +179,37 @@ struct PhotoField: View {
                 .font(.footnote)
             }
 
-            PhotosPicker(selection: $item, matching: .images, photoLibrary: .shared()) {
-                Label(data == nil ? label : "写真を変更", systemImage: "camera")
-                    .font(.subheadline)
+            if allowsCamera && CameraPicker.isAvailable {
+                HStack(spacing: 16) {
+                    Button {
+                        showCamera = true
+                    } label: {
+                        Label("写真を撮る", systemImage: "camera.fill")
+                            .font(.subheadline)
+                    }
+
+                    PhotosPicker(selection: $item, matching: .images, photoLibrary: .shared()) {
+                        Label(data == nil ? label : "写真を変更", systemImage: "photo.on.rectangle")
+                            .font(.subheadline)
+                    }
+                }
+            } else {
+                PhotosPicker(selection: $item, matching: .images, photoLibrary: .shared()) {
+                    Label(data == nil ? label : "写真を変更", systemImage: "camera")
+                        .font(.subheadline)
+                }
             }
         }
         .task(id: item) {
             guard let item else { return }
             guard let loaded = try? await item.loadTransferable(type: Data.self) else { return }
             data = ImageSupport.normalized(loaded) ?? loaded
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker { captured in
+                data = captured
+            }
+            .ignoresSafeArea()
         }
     }
 }

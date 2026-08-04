@@ -10,6 +10,7 @@ import Foundation
 protocol RecordOption: RawRepresentable, CaseIterable, Identifiable, Hashable where RawValue == String {
     var label: String { get }
     var concern: Int { get }
+    var rank: Int { get }
 }
 
 extension RecordOption {
@@ -17,13 +18,16 @@ extension RecordOption {
 }
 
 extension RecordOption where AllCases == [Self] {
-    /// 選択肢リスト内での位置。大きいほど「多い／大きい」側。
+    /// 既定は選択肢リスト内での位置。
+    /// 表示順と「多い／大きい」の向きが一致しない選択肢は、各自で上書きすること。
     var rank: Int { Self.allCases.firstIndex(of: self) ?? 0 }
 }
 
 // MARK: - 食欲
 
+/// 量の多い順に並べる。食欲では rank を使わないので、並びは表示順のみを決める。
 enum Appetite: String, RecordOption {
+    case more
     case normal
     case slightlyLess
     case half
@@ -31,6 +35,7 @@ enum Appetite: String, RecordOption {
 
     var label: String {
         switch self {
+        case .more: return "多い"
         case .normal: return "普通"
         case .slightlyLess: return "少し少ない"
         case .half: return "半分くらい"
@@ -38,12 +43,25 @@ enum Appetite: String, RecordOption {
         }
     }
 
+    /// concern は「食べられていない度合い」。よく食べているのは心配ではないので
+    /// 「多い」は普通と同じ 0 にする。
     var concern: Int {
         switch self {
-        case .normal: return 0
+        case .more, .normal: return 0
         case .slightlyLess: return 1
         case .half: return 2
         case .notEating: return 3
+        }
+    }
+
+    /// 表示は多い順なので、量の順序は別に持つ。
+    var rank: Int {
+        switch self {
+        case .notEating: return 0
+        case .half: return 1
+        case .slightlyLess: return 2
+        case .normal: return 3
+        case .more: return 4
         }
     }
 }
@@ -51,15 +69,15 @@ enum Appetite: String, RecordOption {
 // MARK: - 飲水
 
 enum WaterIntake: String, RecordOption {
-    case less
-    case normal
     case more
+    case normal
+    case less
 
     var label: String {
         switch self {
-        case .less: return "少ない"
-        case .normal: return "普通"
         case .more: return "多い"
+        case .normal: return "普通"
+        case .less: return "少ない"
         }
     }
 
@@ -69,20 +87,29 @@ enum WaterIntake: String, RecordOption {
         case .less, .more: return 1
         }
     }
+
+    /// 表示は多い順なので、量の順序は別に持つ。
+    var rank: Int {
+        switch self {
+        case .less: return 0
+        case .normal: return 1
+        case .more: return 2
+        }
+    }
 }
 
 // MARK: - うんち（量）
 
 enum PoopAmount: String, RecordOption {
-    case less
-    case normal
     case more
+    case normal
+    case less
 
     var label: String {
         switch self {
-        case .less: return "少ない"
-        case .normal: return "普通"
         case .more: return "多い"
+        case .normal: return "普通"
+        case .less: return "少ない"
         }
     }
 
@@ -92,20 +119,29 @@ enum PoopAmount: String, RecordOption {
         case .normal, .more: return 0
         }
     }
+
+    /// 表示は多い順なので、量の順序は別に持つ。
+    var rank: Int {
+        switch self {
+        case .less: return 0
+        case .normal: return 1
+        case .more: return 2
+        }
+    }
 }
 
 // MARK: - うんち（サイズ）
 
 enum PoopSize: String, RecordOption {
-    case small
-    case normal
     case large
+    case normal
+    case small
 
     var label: String {
         switch self {
-        case .small: return "小さい"
-        case .normal: return "普通"
         case .large: return "大きい"
+        case .normal: return "普通"
+        case .small: return "小さい"
         }
     }
 
@@ -113,6 +149,15 @@ enum PoopSize: String, RecordOption {
         switch self {
         case .small: return 2
         case .normal, .large: return 0
+        }
+    }
+
+    /// 表示は大きい順なので、大きさの順序は別に持つ。
+    var rank: Int {
+        switch self {
+        case .small: return 0
+        case .normal: return 1
+        case .large: return 2
         }
     }
 }

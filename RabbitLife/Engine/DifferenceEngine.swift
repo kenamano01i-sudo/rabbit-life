@@ -105,22 +105,25 @@ struct DifferenceEngine {
         let message: String
         let level: DifferenceLevel
 
-        if delta > 0 {
+        if current == previous {
+            message = current == .normal ? "\(ref)と同じです" : "\(ref)と同じく\(current.label)です"
+            level = appetiteLevel(for: current)
+        } else if delta > 0 {
             message = delta == 1
                 ? "\(ref)より少し食欲が落ちています"
                 : "\(ref)より食欲が落ちています"
             level = appetiteLevel(for: current)
         } else if delta < 0 {
-            message = current == .normal
+            message = current.concern == 0
                 ? "\(ref)より食欲が戻っています"
                 : "\(ref)より食欲が戻ってきています"
-            level = current == .normal ? .normal : .notice
-        } else if current == .normal {
-            message = "\(ref)と同じです"
-            level = .normal
+            level = current.concern == 0 ? .normal : .notice
         } else {
-            message = "\(ref)と同じく\(current.label)です"
-            level = appetiteLevel(for: current)
+            // 普通 ↔ 多い。どちらも心配のない状態なので、事実だけ伝えて色は付けない。
+            message = current == .more
+                ? "\(ref)よりよく食べています"
+                : "\(ref)より食欲は普通に戻っています"
+            level = .normal
         }
 
         return DifferenceDraft(
@@ -139,7 +142,7 @@ struct DifferenceEngine {
 
     private func appetiteLevel(for appetite: Appetite) -> DifferenceLevel {
         switch appetite {
-        case .normal: return .normal
+        case .more, .normal: return .normal
         case .slightlyLess: return .notice
         case .half: return .warning
         case .notEating: return .important
@@ -321,7 +324,8 @@ struct DifferenceEngine {
         var order = 100
 
         // 食欲
-        let appetiteStreak = chain.prefix { $0.appetite != .normal }
+        // 「多い」は concern 0。ここは食欲が落ちている連続日数を見るので含めない。
+        let appetiteStreak = chain.prefix { $0.appetite.concern > 0 }
         if appetiteStreak.count >= 2 {
             let n = appetiteStreak.count
             let worst = appetiteStreak.map(\.appetite.concern).max() ?? 0
